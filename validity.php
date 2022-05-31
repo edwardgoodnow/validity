@@ -26,7 +26,10 @@ $files = scandir($file_dir); //get files into array
         if(preg_match('/msg$/', $file_dir . '/' . $file)) { //make sure we aren't getting the folder itself and such we just want the ms files here
            $msg = mailparse_msg_get_part_data ( mailparse_msg_parse_file($file_dir . '/' . $file) ); //get message into array
 
-           mysqli_query($conn, vsprintf("insert into email_data (`id`, `to`, `from`, `message_id`, `date`, `subject`)
+           $qry = mysqli_query($conn, vsprintf("select message_id from email_data where message_id='%s'", [ $msg['headers']['message-id'] ]));
+           if(mysqli_num_rows($qry) == 0) {
+                //since this is procedural let's bind our statements using printf methods...not as pretty as laravel or codeigniter methods or even nodejs...but it works
+                mysqli_query($conn, vsprintf("insert into email_data (`id`, `to`, `from`, `message_id`, `date`, `subject`)
                                         values(null, '%s', '%s', '%s', '%s', '%s')", [
                                                                                         mysqli_real_escape_string($conn, $msg['headers']['to']),
                                                                                         mysqli_real_escape_string($conn, $msg['headers']['from']),
@@ -34,6 +37,9 @@ $files = scandir($file_dir); //get files into array
                                                                                         mysqli_real_escape_string($conn, $msg['headers']['date']),
                                                                                         mysqli_real_escape_string($conn, $msg['headers']['subject'])
                                                                                     ]));
+           } else {
+               echo "Message Already Exists!\n";
+           }
            echo mysqli_error($conn);
         }
 
